@@ -26,6 +26,6 @@ Ligne vide pour sortir.
 Exemple de group-file:
 
 >> toto
-buchette
-marmotte
-grenouille sale
+>> buchette
+>> marmotte
+>> grenouille sale
