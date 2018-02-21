@@ -1,0 +1,86 @@
+#!/bin/bash
+
+INIT_FILE="/home/marthin/JdR/Groupe/init"
+GROUP_FILE="/home/marthin/JdR/Groupe/groupe"
+LOG_FILE="/home/marthin/JdR/Groupe/log"
+EDIT_MODE=0
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -e|--edit)
+    EDIT_MODE=1
+    shift # past argument
+    ;;
+    -l|--log-file)
+    LOG_FILE=$1
+    shift # past argument
+    shift #past value
+    ;;
+    -g|--group-file)
+    GROUP_FILE=$1
+    shift #past argument
+    shift #past value
+    ;;
+    -i|--init-file)
+    INIT_FILE=$1
+    shift #past argument
+    shift #past value
+    ;;
+esac
+done
+
+if [[ $EDIT_MODE == 1 ]]; then
+	echo -n "" > $INIT_FILE
+	echo "Initiative du groupe : "
+	lines=$(($(wc -l <$GROUP_FILE) + 0))
+	for (( i=1; i<=$lines; i++ )); do
+		#head -n$i $GROUP_FILE | tail -n1
+		read -p "$(head -n$i $GROUP_FILE | tail -n1) " toto
+		echo "$(head -n$i $GROUP_FILE | tail -n1) $toto" >> $INIT_FILE
+	done
+	echo "Autres participants (ctrl-D pour arrêter) : "
+	read newline
+	while [[ $newline != "" ]]; do
+		echo $newline >> $INIT_FILE
+		read newline
+	done
+else
+
+# main loop
+	awk '{print $NF, $0}'  $INIT_FILE | sort -k1 -n -r | sed 's/^[0-9][0-9]* //' > $INIT_FILE.tmp
+	lines=$(($(wc -l <$INIT_FILE.tmp) + 0))
+	echo "    'e' puis entrée pour passer en mode edition de log"
+	echo "    'd' puis entrée pour retirer un participant de la bagarre"
+	while true; do
+		if [[ $lines == 0 ]]; then
+			echo "----------"
+			echo "plus personne..."
+			echo "----------"
+			exit 0
+		fi
+		for (( i=1; i<=$lines; i++ )); do
+			current=$(head -n$i $INIT_FILE.tmp | tail -n1)
+			echo $current
+			read -s toto
+			if [[ $toto == "e" ]]; then
+				echo "----------"
+				echo "edit mode : ligne vide pour sortir"
+				read logline
+				while [[ $logline != "" ]]; do
+					echo $logline >> $LOG_FILE
+					read logline
+				done
+				echo "retour au combat"
+				echo "----------"
+			elif [[ $toto == "d" ]]; then
+				echo "-- $(echo $current | awk '{print $1}') est hors de combat"
+				sed -i "/$current/d" $INIT_FILE.tmp
+				lines=$(($(wc -l <$INIT_FILE.tmp) + 0))
+			fi
+		done
+	done
+fi
+
